@@ -12,12 +12,13 @@ import jax
 import jax.numpy as jnp
 from jax.typing import ArrayLike
 import pyamg
-import petsc4py.PETSc as PETSc
 
 try:
   import pypardiso  # type: ignore
+  import pyamg  # type: ignore
+  import petsc4py.PETSc as PETSc  # type: ignore
 except ImportError:
-  warnings.warn("pypardiso library not found. Some solvers may not be available.")
+  warnings.warn("library not found. Some solvers may not be available.")
 
 
 class LinearSolvers(enum.Enum):
@@ -307,9 +308,9 @@ def modified_newton_raphson_solve(
 
   x0, res_norm, ctr = jax.lax.while_loop(cond_fn, body_fn, state)
   jax.debug.print(
-      "NR converged in {x} iters, res_norm/res_norm_0: {res_norm}",
-      x=ctr,
-      res_norm=jax.lax.stop_gradient(jnp.linalg.norm(res_norm)/init_res_norm),
+    "NR converged in {x} iters, res_norm/res_norm_0: {res_norm}",
+    x=ctr,
+    res_norm=jax.lax.stop_gradient(jnp.linalg.norm(res_norm) / init_res_norm),
   )
 
   return x0
