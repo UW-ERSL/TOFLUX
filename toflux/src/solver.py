@@ -10,19 +10,19 @@ import scipy.sparse as spy_sprs
 import scipy.sparse.linalg as spy_linalg
 import jax
 import jax.numpy as jnp
+import jax.experimental.sparse as jax_sprs
 from jax.typing import ArrayLike
 import pyamg
+import petsc4py.PETSc as PETSc
 
 try:
   import pypardiso  # type: ignore
-  import pyamg  # type: ignore
-  import petsc4py.PETSc as PETSc  # type: ignore
 except ImportError:
-  warnings.warn("library not found. Some solvers may not be available.")
+  warnings.warn("pypardiso library not found. Some solvers may not be available.")
 
 
 class LinearSolvers(enum.Enum):
-  """Enumeration of linear solvers."""
+  """Linear solvers wrapped around with `jax.lax.custom_linear_solve`."""
 
   LINALG_SOLVE = enum.auto()
   AMG_CG = enum.auto()
@@ -33,14 +33,12 @@ class LinearSolvers(enum.Enum):
 
 
 def _jacobi_preconditioner(A: spy_sprs.coo_matrix) -> spy_sprs.coo_matrix:
-  """
-  Computes the Jacobi preconditioner for a sparse matrix A in COO format.
+  """Computes the Jacobi preconditioner for a sparse matrix A in COO format.
 
   Args:
-    A (coo_matrix): The sparse matrix in COO format.
+    A: The sparse matrix in COO format.
 
-  Returns:
-    coo_matrix: The Jacobi preconditioner in COO format.
+  Returns: The Jacobi preconditioner in COO format.
   """
 
   # Extract diagonal elements
@@ -105,24 +103,34 @@ def _petsc_solve(
 
 
 def solve(
-  A: jnp.ndarray,
+  A: jax_sprs.BCOO,
   b: jnp.ndarray,
   params: Dict,
   u0: jnp.ndarray = None,
 ) -> jnp.ndarray:
-  """Solve for u = A^{-1}b using Algebraic Multi-Grid solver (AMG).
+  """Solve for u = A^{-1}b using custom solvers.
+
+  This function uses `jax.lax.custom_linear_solve` to solve the linear system of
+    equations defined by the sparse matrix A and the right-hand side vector b. For
+    the list of available solvers, see `LinearSolvers` enum. The solvers themselves
+    are not differentiable. By wrapping them in `jax.lax.custom_linear_solve`, we can
+    use them in JAX computations while still allowing for differentiation through the
+    linear solve operation.
+
   Args:
     A: A sparse BCOO matrix of shape (m,m)
     b: The rhs vector of shape (m,).
-    params: Additional parameters for the solver.
-    u0: The initial guess for the solution of shape (m,).
-  Returns:
-    The solution vector of shape (m,).
+    params: Additional parameters for the solver. This should include:
+      - "solver": The type of solver to use, as defined in `LinearSolvers`
+      - other solver-specific parameters, e.g., "rtol" for relative tolerance.
+    u0: The initial guess for the solution of shape (m,). Not required for all solvers,
+      but some solvers may need it (e.g., iterative solvers like CG or BICGSTAB).
+
+  Returns: The solution vector of shape (m,).
   """
 
   def mv(u):
-    Au = A @ u
-    return Au
+    return A @ u
 
   def solver_wrapper(A, b):
     A_sp = spy_sprs.coo_matrix(
@@ -157,15 +165,26 @@ def solve(
 
   result_shape = jax.ShapeDtypeStruct(b.shape, b.dtype)
 
-  def cust_solver(mv, b):
+  def cust_fwd_solver(mv, b):
     return jax.pure_callback(solver_wrapper, result_shape, A, b)
 
-  sol = jax.lax.custom_linear_solve(mv, b, cust_solver, symmetric=True)
+  def cust_bwd_solver(mv, b):
+    return jax.pure_callback(solver_wrapper, result_shape, A.T, b)
+
+  sol = jax.lax.custom_linear_solve(
+    mv, b, solve=cust_fwd_solver, transpose_solve=cust_bwd_solver
+  )
   return sol.reshape(-1)
 
 
 class NonlinearProblem(abc.ABC):
-  """Base class for the nonlinear problems."""
+  """Base class for the nonlinear problems.
+
+  This class defines the interface for nonlinear problems that can be solved using
+    Newton's method or modified Newton's method. The derived classes should implement
+    the `get_residual_and_tangent_stiffness` method to compute the residual and
+    tangent stiffness matrix of the system of equations.
+  """
 
   def __init__(self, solver_settings: dict):
     """Initializes the nonlinear problem with solver settings.
@@ -178,7 +197,7 @@ class NonlinearProblem(abc.ABC):
   @abc.abstractmethod
   def get_residual_and_tangent_stiffness(
     self, x: jax.Array, *params
-  ) -> tuple[jax.Array, jax.Array]:
+  ) -> tuple[jax.Array, jax_sprs.BCOO]:
     """Base class function for computing the residual and tangent stiffness matrix.
     The function takes as arguments (x0, *params) where x0 is the current guess
     of the solution and *params are the additional parameters.
@@ -198,6 +217,17 @@ def newton_raphson_solve(
   *params,
 ) -> jnp.ndarray:
   """Nonlinear solver using Newton's method.
+
+  This function implements the Newton-Raphson method to solve the nonlinear system of
+    equations defined by the `problem` object. The method iteratively updates the
+    solution until convergence is achieved based on the specified settings in
+    `problem.solver_settings["nonlinear"]`.
+
+    We then define a custom JVP rule for this function to enable differentiation
+    through the nonlinear solve operation. In particular, we use the implicit function
+    theorem to compute the JVP of the solution with respect to the parameters.
+    This avoids the need to differentiate through the entire Newton-Raphson iteration
+    chain, which can be computationally expensive and memory-intensive.
 
   Args:
     problem: The function to compute the residual.
@@ -242,19 +272,35 @@ def solve_jvp(
   primals: tuple[jnp.ndarray, ...],
   tangents: tuple[jnp.ndarray, ...],
 ) -> tuple[jnp.ndarray, jnp.ndarray]:
+  """JVP rule for the Newton-Raphson solver.
+
+  This function implements the JVP rule for the Newton-Raphson solver using the
+    implicit function theorem. Given the primal inputs (x0, *params) and their tangents,
+    we first solve the nonlinear system to obtain the solution x. We then compute the
+    product of the derivative of the residual with respect to the parameters times
+    the perturbation of the parameters. Finally, we solve the linear system to
+    obtain the JVP of the solution with respect to the parameters.
+
+  Args:
+    problem: The nonlinear problem object.
+    primals: A tuple containing the primal inputs (x0, *params).
+    tangents: A tuple containing the tangents of the primal inputs (dx0, *dparams).
+
+  Returns: A tuple containing the solution x and the JVP of the solution with respect
+    to the parameters.
+  """
   x0, *params = primals
   _, *dparams = tangents
 
   x = newton_raphson_solve(problem, x0, *params)
-  _, df_dp, jacobian = jax.jvp(
+  _, dr_dp, jacobian_dr_dx = jax.jvp(
     problem.get_residual_and_tangent_stiffness,
     (x, *params),
     (jnp.zeros_like(x), *dparams),
     has_aux=True,
   )
-  jinvv_dfdp = solve(jacobian, -df_dp, params=problem.solver_settings["linear"])
-
-  return x, jinvv_dfdp
+  jinv_v_dr_dp = solve(jacobian_dr_dx, -dr_dp, params=problem.solver_settings["linear"])
+  return x, jinv_v_dr_dp
 
 
 @functools.partial(jax.custom_jvp, nondiff_argnums=(0,))
@@ -263,6 +309,22 @@ def modified_newton_raphson_solve(
   x0: jnp.ndarray,
   *params,
 ) -> jnp.ndarray:
+  """Modified Newton-Raphson solver for nonlinear problems.
+
+  This function implements a modified version of the Newton-Raphson method that
+    uses a half-step approach to improve convergence. The method iteratively updates the
+    solution until convergence is achieved based on the specified settings in
+    `problem.solver_settings["nonlinear"]`.
+
+  Args:
+    problem: The nonlinear problem object that defines the system of equations.
+    x0: Initial guess for the solution, an array of shape (num_dofs,).
+    *params: Additional parameters required by the problem's residual and tangent
+      stiffness functions.
+
+  Returns: The solution vector of shape (num_dofs,).
+  """
+
   ctr = 0
   init_res, _ = problem.get_residual_and_tangent_stiffness(x0, *params)
   init_res_norm = jax.lax.stop_gradient(jnp.linalg.norm(init_res))
@@ -322,6 +384,23 @@ def solve_jvp(  # noqa: F811
   primals: tuple[jnp.ndarray, ...],
   tangents: tuple[jnp.ndarray, ...],
 ) -> tuple[jnp.ndarray, jnp.ndarray]:
+  """JVP rule for the modified Newton-Raphson solver.
+
+  This function implements the JVP rule for the modified Newton-Raphson solver using the
+    implicit function theorem. Given the primal inputs (x0, *params) and their tangents,
+    we first solve the nonlinear system to obtain the solution x. We then compute the
+    product of the derivative of the residual with respect to the parameters times
+    the perturbation of the parameters. Finally, we solve the linear system to
+    obtain the JVP of the solution with respect to the parameters.
+
+  Args:
+    problem: The nonlinear problem object.
+    primals: A tuple containing the primal inputs (x0, *params).
+    tangents: A tuple containing the tangents of the primal inputs (dx0, *dparams).
+
+  Returns: A tuple containing the solution x and the JVP of the solution with respect
+    to the parameters.
+  """
   x0, *params = primals
   _, *dparams = tangents
 

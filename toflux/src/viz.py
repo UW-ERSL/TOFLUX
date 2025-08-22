@@ -45,6 +45,10 @@ def plot_grid_mesh(
   p = PatchCollection(polygons, edgecolor=edge_color, linewidth=1)
 
   if field is not None:
+    assert field.shape[0] == mesh.num_elems, (
+      "The field must have the same number of elements as the mesh."
+    )
+
     if val_range is not None:
       field_min, field_max = val_range
     else:
@@ -171,7 +175,10 @@ def plot_bc(
   return ax
 
 
-def plot_brep(brep: _geom.BrepGeometry, ax: plt.Axes = None,):
+def plot_brep(
+  brep: _geom.BrepGeometry,
+  ax: plt.Axes = None,
+):
   """Plot the edges and nodes extracted from a BREP geometry."""
   if ax is None:
     _, ax = plt.subplots()

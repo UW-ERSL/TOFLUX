@@ -16,6 +16,7 @@ import toflux.src.element as _element
 
 @chex.dataclass
 class BoundingBox:
+  """Defines a bounding box in 1D, 2D or 3D."""
   x: _utils.Extent
   y: Optional[_utils.Extent] = None
   z: Optional[_utils.Extent] = None

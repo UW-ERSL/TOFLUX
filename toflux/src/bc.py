@@ -256,14 +256,16 @@ def apply_dirichlet_bc(
 ) -> jax_sprs.BCOO:
   """Applies Dirichlet boundary conditions to a BCOO Jacobian matrix.
 
+  The function modifies the Jacobian matrix by zeroing out the rows and columns
+    corresponding to the fixed degrees of freedom (Dirichlet conditions) and adding
+    back the diagonal entries with a value of 1.0.
+
   Args:
     jacobian: The Jacobian matrix as a JAX BCOO sparse matrix.
     dirichlet_nodes: A list of node indices with Dirichlet conditions.
 
-  Returns:
-    The modified Jacobian matrix as a JAX BCOO sparse matrix.
+  Returns: The modified Jacobian matrix as a JAX BCOO sparse matrix.
   """
-
   data, indices = jacobian.data, jacobian.indices
 
   # 1. Zeroing rows:

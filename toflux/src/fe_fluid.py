@@ -1,4 +1,44 @@
-"""Fluid flow solver for Navier-Stokes equations in dimensional form."""
+"""Fluid flow solver for Navier-Stokes equations in dimensional form.
+
+This module implements a finite element solver for the steady-state,
+incompressible Navier-Stokes equations on a domain Ω, incorporating a
+Brinkman penalty term to model fluid flow through porous media. This is
+commonly used in topology optimization to represent solid regions as areas of
+very low permeability.
+
+The governing equations in their strong form are:
+
+Momentum conservation:
+    ρ(u ⋅ ∇)u - ∇ ⋅ (μ(∇u + (∇u)ᵀ)) + ∇p - αu = 0
+
+Mass conservation (incompressibility):
+    ∇ ⋅ u = 0
+
+with appropriate boundary conditions on Γ.
+
+  u   : velocity field
+  p   : pressure field
+  ρ   : fluid density
+  μ   : dynamic viscosity
+  α   : Brinkman penalty (inverse permeability)
+
+Brinkman Penalty:
+  • The α term penalizes velocity in regions designated as solid, effectively
+    enforcing a no-slip condition. In fluid regions, α is zero (or very small).
+    This approach allows for a single-domain formulation for fluid-solid
+    interaction problems typical in topology optimization.
+
+Stabilization:
+  The formulation is implemented with stabilized finite elements to handle
+  convection-dominated flows. Specifically, it uses:
+  • Streamline-Upwind/Petrov-Galerkin (SUPG) for the convective terms.
+  • Pressure-Stabilizing/Petrov-Galerkin (PSPG) for the pressure gradient terms.
+
+For more details see:
+  Alexandersen, Joe. "A detailed introduction to density-based topology optimisation of
+  fluid flow problems with implementation in MATLAB." SMO 66, no. 1 (2023): 12.
+  https://link.springer.com/article/10.1007/s00158-022-03420-9
+"""
 
 import enum
 import numpy as np
@@ -89,7 +129,7 @@ class FluidSolver(_solv.NonlinearProblem):
         element.
 
     Returns:
-      stab_param: Stabilization parameter.
+      stab_param: The scalar stabilization parameter at the given element.
     """
     gp_center = jnp.zeros((self.mesh.num_dim,))
     shp_fn = self.mesh.elem_template.shape_functions(gp_center)
@@ -114,7 +154,7 @@ class FluidSolver(_solv.NonlinearProblem):
     node_coords: jnp.ndarray,
     elem_char_length: float,
   ) -> jnp.ndarray:
-    """Computes the elemntal residual of the fluid stiffness matrix.
+    """Computes the elemental residual of the fluid stiffness matrix.
 
     The weak form is expressed as follows:
 
@@ -277,16 +317,18 @@ class FluidSolver(_solv.NonlinearProblem):
     self,
     press_vel: ArrayLike,
     brinkman_penalty: ArrayLike,
-  ) -> ArrayLike:
-    """Compute the residual of the system of equations.
-        The residual is given by:
+  ) -> tuple[ArrayLike, jax_sprs.BCOO]:
+    """Compute the residual and the tangent matrix of the system of equations.
 
-                  R = K u - f
-    where:
-      - R is the residual vector.
-      - K is the stiffness matrix.
-      - u is the solution vector.
-      - f is the load vector.
+    The residual takes into account the momentum and incompressibility equations,
+      with the stabilization terms included. The residual is given by:
+                    res = {res_mom, res_incom}
+
+      where res_mom is the residual of the momentum equations and res_incom is the
+      residual of the incompressibility equation. The tangent stiffness matrix
+      is computed as the Jacobian of the residual with respect to the pressure and
+      velocity fields. In our framework, we compute the tangent stiffness matrix
+      automatically using JAX's automatic differentiation capabilities.
 
     Args:
       press_vel: Array of size (num_dofs,) which is the pressure and velocity of the nodes
@@ -305,12 +347,15 @@ class FluidSolver(_solv.NonlinearProblem):
       self.mesh.elem_node_coords,
       self.mesh.elem_diag_length,
     )
+
+    # residual
     elem_residual = jax.vmap(self._compute_elem_residual)(*res_args)
 
     residual = jnp.zeros((self.mesh.num_dofs,))
     residual = residual.at[self.mesh.elem_dof_mat].add(elem_residual)
     residual = residual.at[self.bc["fixed_dofs"]].set(0.0)
 
+    # tangent stiffness
     elem_jacobian = jax.vmap(jax.jacrev(self._compute_elem_residual, argnums=0))(
       *res_args
     )
@@ -354,7 +399,7 @@ class FluidSolver(_solv.NonlinearProblem):
       node_coords: Array of (num_nodes_per_elem, num_dims) containing the coordinates of
         the nodes of an element.
 
-    Returns: The computed objective value.
+    Returns: The amount of dissipated power in the element.
     """
     num_fields = self.mesh.num_dim + 1  # velocity + pressure
     vel = pressure_velocity.reshape(-1, num_fields)[:, 1:].flatten()

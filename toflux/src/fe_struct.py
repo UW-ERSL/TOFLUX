@@ -1,4 +1,28 @@
-"""Structural solver with large deformations."""
+"""Structural solver with large deformations.
+
+This module implements a finite element solver for solid mechanics problems,
+capable of handling both small (linear) and large (geometrically non-linear)
+deformations. The solver is based on a total Lagrangian formulation.
+
+The governing equation is the balance of linear momentum in its strong form
+(for a static problem):
+
+    ∇ ⋅ P + B = 0
+
+where:
+  P : First Piola-Kirchhoff stress tensor.
+  B : Body force vector in the reference configuration.
+
+The weak form of this equation states that the internal virtual work must equal
+the external virtual work for any admissible virtual displacement. This leads to
+the residual equation for a single element:
+
+    R_e = F_int - F_ext = 0
+
+where:
+  F_int : Nodal internal forces, computed from the stress state within the element.
+  F_ext : Nodal external forces (applied loads, body forces, etc.).
+"""
 
 import enum
 import numpy as np
@@ -137,11 +161,26 @@ class FEA(_nlsolv.NonlinearProblem):
     lame_lambda: ArrayLike,
     lame_mu: ArrayLike,
     addn_force: ArrayLike = None,
-  ) -> ArrayLike:
-    """Compute the residual of the system of equations.
-        The residual is given by:
+  ) -> tuple[ArrayLike, jax_sprs.BCOO]:
+    """Compute the residual and tangent matrix of the system of equations.
+        
+    The residual is given by:
 
-                  R = K u - f
+                  R = F_ext - F_int
+
+      where F_ext is the external force vector and F_int is the internal force vector
+      computed from the element stresses.
+
+      The tangent stiffness matrix is computed as the derivative of the residual
+      with respect to the displacements: 
+                  K = dR/du
+      
+      In our framework, we compute the tangent stiffness matrix automatically using
+      JAX's automatic differentiation capabilities.
+
+    NOTE: This function overrides the base class method to provide the specific
+      implementation for structural mechanics problems. Similar adaptation follows for
+      the fluid and thermal solvers.
 
     Args:
       u: Array of size (num_dofs,) which is the displacement of the nodes

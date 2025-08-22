@@ -26,8 +26,14 @@ class ThermalMaterial:
   expansion_coefficient: Optional[float] = None
 
   @property
+  def heat_capacity(self) -> float:
+    """Heat capacity of the fluid [J/(m^3*K)]."""
+    return self.mass_density * self.specific_heat
+
+  @property
   def diffusivity(self) -> float:
-    return (self.thermal_conductivity) / (self.mass_density * self.specific_heat)
+    """Thermal diffusivity of the fluid [m^2/s]."""
+    return self.thermal_conductivity / self.heat_capacity
 
 
 @dataclasses.dataclass
@@ -142,41 +148,64 @@ class FluidMaterial:
 
   @property
   def kinematic_viscosity(self) -> float:
+    """Kinematic viscosity of the fluid [m^2/s]."""
     return self.dynamic_viscosity / self.mass_density
+
+  @property
+  def heat_capacity(self) -> float:
+    """Heat capacity of the fluid [J/(m^3*K)]."""
+    return self.mass_density * self.specific_heat
 
   @property
   def diffusivity(self) -> float:
     """Thermal diffusivity of the fluid [m^2/s]."""
-    return self.thermal_conductivity / (self.mass_density * self.specific_heat)
+    return self.thermal_conductivity / self.heat_capacity
 
 
 def brinkman_bound(dynamic_viscosity: float, out_of_plane_thickness: float) -> float:
-  """Calculate the brinkman penlaty upper/lower bound for the given material constants.
+  """Compute lower/upper bounds for the Brinkman penalty (inverse permeability).
+  This helper returns bounds for the Brinkman term used in Brinkman-penalized
+  Navier–Stokes formulations for density-based fluid topology optimization. For
+  two-dimensional problems representing a finite out-of-plane thickness, the minimum
+  penalty should account for the viscous resistance of a parallel-plate channel of
+  half-height h (Poiseuille profile), giving
+    α_min = (5 μ) / (2 h²).
 
-  brinkman_penalty_min = 5*dynamic_viscosity/2*out_of_plane_thickness^2
-  out_of_plane_thickness = 100*char_length
+    here, μ is the dynamic viscosity of the fluid (Pa·s).
 
-  brinkman_penalty_max = 5*dynamic_viscosity/2*out_of_plane_thickness^2
-  out_of_plane_thickness = 0.01*char_length
+  This implementation follows a common thickness-based bracketing heuristic
+  instead: evaluate α = (5 μ) / (2 h²) at two effective out-of-plane thicknesses derived
+  from a characteristic in-plane length L_c,
+      • “large” thickness  t_large = 100 · L_c  → min bound,
+      • “small” thickness  t_small = 0.01 · L_c → max bound,
+  which is consistent with the out-of-plane interpretation linking permeability
+  κ and thickness (κ = 2 h²/5 ⇒ α = μ/κ = 5 μ /(2 h²)).
 
-  https://link.springer.com/article/10.1007/s00158-022-03420-9
   Args:
-    dynamic_viscosity: The dynamic viscosity of the fluid.
-    out_of_plane_thickness: The out of plane thickness of the domain.
+    dynamic_viscosity : μ, dynamic viscosity of the fluid (Pa·s).
+    out_of_plane_thickness : t, out-of-plane thickness of the bracket (same units
+      as thickness).
 
-  Returns: The brinkman penalty bound.
+  Returns: The Brinkman penalty factor α ∈ [α_min, α_max] for the given dynamic
+    viscosity and out-of-plane thickness.
   """
 
   return 5 * dynamic_viscosity / (2 * out_of_plane_thickness**2)
 
 
-def calculate_interpolation_factor(
+def calculate_initial_ramp_penalty(
   inv_permeability_ext: _Ext, init_inv_permeability: float, desired_mat_fraction: float
 ) -> float:
-  """
-  Calculate the interpolation factor for the penalized brinkman factor.
+  """Calculate the interpolation factor for the penalized brinkman factor.
+  In density-based fluid TO with Brinkman penalization, the RAMP parameter controls the
+    shape of the brinkman penalty interpolation. This function initializes the RAMP
+    parameter which is then divided by a continuation factor (which reduces as epoch
+    increases) during optimization.
+  For more details, see:
+    Alexandersen, Joe. "A detailed introduction to density-based topology optimisation
+    of fluid flow problems with implementation in MATLAB." SMO 66, no. 1 (2023): 12.
 
-  interpolation_factor = (-desired_void_fraction*(inv_permeability_ext.range) +
+  initial_ramp_penalty = (-desired_void_fraction*(inv_permeability_ext.range) +
                           inv_permeability_ext.max - init_inv_permeability)
                           /(desired_void_fraction*
                           (init_inv_permeability-inv_permeability_ext.min))
@@ -187,15 +216,15 @@ def calculate_interpolation_factor(
     init_inv_permeability: The initial permeability value.
     desired_mat_fraction: The desired material fraction.
 
-  Returns: The interpolation factor.
+  Returns: The initial RAMP penalty parameter.
   """
 
   desired_void_fraction = 1.0 - desired_mat_fraction
   t_1 = desired_void_fraction * (inv_permeability_ext.range)
   t_2 = inv_permeability_ext.max - init_inv_permeability
   t_3 = desired_void_fraction * (init_inv_permeability - inv_permeability_ext.min)
-  inter_factor = (-t_1 + t_2) / t_3
-  return inter_factor
+  initial_ramp_penalty = (-t_1 + t_2) / t_3
+  return initial_ramp_penalty
 
 
 def compute_ramp_interpolation(
@@ -206,38 +235,38 @@ def compute_ramp_interpolation(
 ) -> jnp.ndarray:
   """RAMP interpolation (convex or concave).
 
-  RAMP — Rational Approximation of Material Properties — smoothly maps the
-  design field prop ∈ [0, 1] to a physical property bounded by
-  prop_ext.min (fluid) and prop_ext.max (solid).
+    RAMP — Rational Approximation of Material Properties — smoothly maps the
+    design field prop ∈ [0, 1] to a physical property bounded by
+    prop_ext.min (fluid) and prop_ext.max (solid).
 
-  Convex mapping (default) keeps values close to the fluid limit
-    early in optimization ⟶ equation (8) in Alexandersen 2022.
-    A detailed introduction to density-based topology optimisation of fluid flow problems
-    with implementation in MATLAB
-  Concave mapping keeps values close to the solid limit early in optimization
-    ⟶ equation (7) in Marck 2013.
-    Topology Optimization of Heat and Mass Transfer Problems: Laminar Flow
+    Convex mapping keeps values close to the fluid limit early in optimization.
+      For more details, see equation (8) in:
+      A detailed introduction to density-based topology optimisation of fluid flow
+      problems with implementation in MATLAB, Alexandersen 2022
 
-  The concave penalized property is calculated using the formula:
+      The convex penalized property is calculated using the formula:
+          penalized_property = min + (max - min)*p/(1. + r_p -r_p*p)
 
-    penalised = min + (max - min)*p*(1.0 + r)/(p + r)
+    Concave mapping keeps values close to the solid limit early in optimization
+      For more details, see equation (7) in:
+      Topology Optimization of Heat and Mass Transfer Problems: Laminar Flow, Marck 2013
 
-  and the convex penalized property is calculated using the formula:
-    penalized_property = min + (max - min)*p/(1. + r_p -r_p*p)
+      The concave penalized property is calculated using the formula:
+          penalised = min + (max - min)*p*(1.0 + r)/(p + r)
 
-  where:
-    - p is the material property value.
-    - r_p is the ramp penalty parameter.
-    - min and max are the minimum and maximum values of the material property.
+    where:
+      - p is the material property value.
+      - r_p is the ramp penalty parameter.
+      - min and max are the minimum and maximum values of the material property.
 
   Args:
-  prop: Design variable array (1 = solid, 0. = fluid).
-  ramp_penalty: RAMP penalty parameter r ≥ 0.
-  prop_ext: Either an _Ext instance or a (min, max) tuple.
-  mode: convex → fluid-biased mapping,
-      concave → solid-biased mapping.
+    prop: Design variable array (1 = solid, 0. = fluid).
+    ramp_penalty: RAMP penalty parameter r ≥ 0.
+    prop_ext: Either an _Ext instance or a (min, max) tuple.
+    mode: convex → fluid-biased mapping,
+          concave → solid-biased mapping.
 
-  Returns: Penalised property array with the same shape as prop.
+  Returns: Penalised property array with the same shape as `prop`.
   """
 
   if isinstance(prop_ext, Tuple):
@@ -246,11 +275,11 @@ def compute_ramp_interpolation(
   rng = prop_ext.range
 
   if mode == "convex":
-    denom = 1.0 + ramp_penalty - ramp_penalty * prop
-    penalised = prop_ext.min + rng * prop / denom
+    denom = 1.0 + ramp_penalty * (1.0 - prop)
+    penalised = prop_ext.min + (rng * prop / denom)
   elif mode == "concave":
     denom = prop + ramp_penalty
-    penalised = prop_ext.min + rng * prop * (1.0 + ramp_penalty) / denom
+    penalised = prop_ext.min + (rng * prop * (1.0 + ramp_penalty) / denom)
   else:
     raise ValueError(f"Unknown RAMP mode '{mode}'. Use 'convex' or 'concave'.")
 
@@ -288,30 +317,3 @@ class CarreauYasudaNonNewtonianFluid:
     v = 1 + _utils.safe_power(self.lam * shear_rate, self.a)
     p = (self.n - 1) / self.a
     return self.eta_inf + del_eta * (_utils.safe_power(v, p))
-
-
-@dataclasses.dataclass(frozen=True)
-class PowerLawNonNewtonianFluid:
-  """Parameters for the power non-Newtonian fluid model.
-
-  The viscosity is modeled as dependent on the shear rate. The viscosity `eta` at
-    shear rate `g` is given by:
-
-      eta(g) = eta_inf * (g)^n
-
-  Where,
-    `eta_inf` is the consistency Index.
-    `n` is the power law exponent. (n < 1 for shear-thinning fluids) and
-                                   (n > 1 for shear-thickening fluids)
-  """
-
-  eta_inf: float
-  n: float
-
-  def get_viscosity(self, shear_rate: ArrayLike) -> float:
-    """Returns the viscosity at the given shear rate.
-
-    NOTE: We use the safe power function to avoid numerical issues with negative or
-    zero shear rates. The safe power function returns 0 for negative or zero inputs.
-    """
-    return self.eta_inf * _utils.safe_power(shear_rate, self.n)

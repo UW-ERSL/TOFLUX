@@ -14,7 +14,7 @@ import toflux.src.bc as _bc
 import toflux.src.solver as _solv
 import toflux.src.utils as _utils
 
-_NonNewt = Union[_mat.CarreauYasudaNonNewtonianFluid, _mat.PowerLawNonNewtonianFluid]
+_NonNewt = _mat.CarreauYasudaNonNewtonianFluid
 
 
 class FluidField(enum.Enum):
