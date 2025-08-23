@@ -1,6 +1,6 @@
 # TOFLUX: A Differentiable Topology Optimization Framework for Multiphysics Fluidic Problems
 
-**Rahul Kumar Padhy, Krishnan Suresh, Aaditya Chandrasekhar**
+[Rahul Kumar Padhy](https://sites.google.com/view/rahulkp/home), [Krishnan Suresh](https://scholar.google.com/citations?hl=en&user=hqoL27AAAAAJ&view_op=list_works&sortby=pubdate),  [Aaditya Chandrasekhar](https://scholar.google.com/citations?user=9wCpPIkAAAAJ&hl=en)
 
 ## Abstract
 
@@ -8,7 +8,7 @@ Topology Optimization (TO) holds the promise of designing next-generation compac
 
 Beyond the inherent intricacies of forward simulation models, design optimization is further complicated by the difficulty of computing sensitivities, i.e., gradients. Manual derivation and implementation of sensitivities are often laborious and prone to errors, particularly for non-trivial objectives, constraints, and material models. An alternative solution is automatic differentiation (AD). Although AD has been previously demonstrated for simpler TO problems, extending its use to complex nonlinear multiphysics systems, specifically in fluidic optimization, is key to reducing the entry barrier.
 
-To this end, we introduce TOFLUX, a \underline{TO} framework for \underline{flu}id devices leveraging the JA\underline{X} library for high-performance automatic differentiation. The flexibility afforded by AD enables the rapid exploration and evaluation of various objectives and constraints. We illustrate this capability through challenging examples encompassing thermo-fluidic coupling, fluid-structure interaction, and non-Newtonian flows. Additionally, we demonstrate the seamless integration of our framework with neural networks and machine learning methodologies, enabling modern approaches to scientific computing. Ultimately, the framework aims to provide a foundational resource to accelerate research and innovation in fluid-based TO.
+To this end, we introduce TOFLUX, a TO framework for fluid devices leveraging the JAX library for high-performance automatic differentiation. The flexibility afforded by AD enables the rapid exploration and evaluation of various objectives and constraints. We illustrate this capability through challenging examples encompassing thermo-fluidic coupling, fluid-structure interaction, and non-Newtonian flows. Additionally, we demonstrate the seamless integration of our framework with neural networks and machine learning methodologies, enabling modern approaches to scientific computing. Ultimately, the framework aims to provide a foundational resource to accelerate research and innovation in fluid-based TO.
 
 ## Installation
 
