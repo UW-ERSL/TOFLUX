@@ -1,4 +1,4 @@
-# TOFLUX: A Differentiable Topology Optimization Framework for Multiphysics Fluidic Problems
+# [TOFLUX: A Differentiable Topology Optimization Framework for Multiphysics Fluidic Problems](https://arxiv.org/abs/2508.17564)
 
 [Rahul Kumar Padhy](https://sites.google.com/view/rahulkp/home), [Krishnan Suresh](https://scholar.google.com/citations?hl=en&user=hqoL27AAAAAJ&view_op=list_works&sortby=pubdate),  [Aaditya Chandrasekhar](https://scholar.google.com/citations?user=9wCpPIkAAAAJ&hl=en)
 
@@ -144,8 +144,9 @@ Differentiable PDE/physics toolkit (fluids included) in Python with NumPy/PyTorc
 If you use TOFLUX in your research, please consider citing it.
 
 ```bibtex
-@article{padhy2024toflux,
-  title={TOFLUX: A Differentiable Topology Optimization Framework for Multiphysics Fluidic Problems},
-  author={Padhy, Rahul and Suresh, Krishnan and Chandrasekhar, Aaditya},
-  journal={arXiv preprint arXiv:XXXX.XXXXX},
-  year
+@misc{padhy2025toflux,
+Author = {Rahul Kumar Padhy and Krishnan Suresh and Aaditya Chandrasekhar},
+Title = {TOFLUX: A Differentiable Topology Optimization Framework for Multiphysics Fluidic Problems},
+Year = {2025},
+Eprint = {arXiv:2508.17564},
+}
