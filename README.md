@@ -144,9 +144,9 @@ Differentiable PDE/physics toolkit (fluids included) in Python with NumPy/PyTorc
 If you use TOFLUX in your research, please consider citing it.
 
 ```bibtex
-@misc{padhy2025toflux,
-Author = {Rahul Kumar Padhy and Krishnan Suresh and Aaditya Chandrasekhar},
-Title = {TOFLUX: A Differentiable Topology Optimization Framework for Multiphysics Fluidic Problems},
-Year = {2025},
-Eprint = {arXiv:2508.17564},
+@article{padhy2025toflux,
+  title={TOFLUX: A Differentiable Topology Optimization Framework for Multiphysics Fluidic Problems},
+  author={Padhy, Rahul Kumar and Suresh, Krishnan and Chandrasekhar, Aaditya},
+  journal={arXiv preprint arXiv:2508.17564},
+  year={2025}
 }
