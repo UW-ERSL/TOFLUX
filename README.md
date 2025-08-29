@@ -137,8 +137,6 @@ Differentiable PDE/physics toolkit (fluids included) in Python with NumPy/PyTorc
 
 * [Diff-FlowFSI](https://arxiv.org/abs/2505.23940): A GPU-Optimized Differentiable CFD Platform for High-Fidelity Turbulence and FSI Simulations — Fully differentiable, GPU-accelerated CFD platform targeting turbulence and FSI.
 
-* [invrs-gym](https://github.com/invrs-io/gym) — A framework of photonic inverse-design challenges with a common API for benchmarking algorithms and workflows.
-
 ## Citation
 
 If you use TOFLUX in your research, please consider citing it.
