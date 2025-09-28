@@ -1,4 +1,4 @@
-# [TOFLUX: A Differentiable Topology Optimization Framework for Multiphysics Fluidic Problems](https://arxiv.org/abs/2508.17564)
+# TOFLUX: A Differentiable Topology Optimization Framework for Multiphysics Fluidic Problems
 
 [Rahul Kumar Padhy](https://sites.google.com/view/rahulkp/home), [Krishnan Suresh](https://scholar.google.com/citations?hl=en&user=hqoL27AAAAAJ&view_op=list_works&sortby=pubdate),  [Aaditya Chandrasekhar](https://scholar.google.com/citations?user=9wCpPIkAAAAJ&hl=en)
 
@@ -137,14 +137,15 @@ Differentiable PDE/physics toolkit (fluids included) in Python with NumPy/PyTorc
 
 * [Diff-FlowFSI](https://arxiv.org/abs/2505.23940): A GPU-Optimized Differentiable CFD Platform for High-Fidelity Turbulence and FSI Simulations — Fully differentiable, GPU-accelerated CFD platform targeting turbulence and FSI.
 
+* [invrs-gym](https://github.com/invrs-io/gym) — A framework of photonic inverse-design challenges with a common API for benchmarking algorithms and workflows.
+
 ## Citation
 
 If you use TOFLUX in your research, please consider citing it.
 
 ```bibtex
-@article{padhy2025toflux,
+@article{padhy2024toflux,
   title={TOFLUX: A Differentiable Topology Optimization Framework for Multiphysics Fluidic Problems},
-  author={Padhy, Rahul Kumar and Suresh, Krishnan and Chandrasekhar, Aaditya},
-  journal={arXiv preprint arXiv:2508.17564},
-  year={2025}
-}
+  author={Padhy, Rahul and Suresh, Krishnan and Chandrasekhar, Aaditya},
+  journal={arXiv preprint arXiv:XXXX.XXXXX},
+  year
