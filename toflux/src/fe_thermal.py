@@ -146,7 +146,7 @@ class FEA(_nlsolv.NonlinearProblem):
       = 0
 
     where:
-          Ω_e      : entire analysis domain
+          Ω_e      : element analysis domain
           u_j      : velocity component in direction x_j
           T        : temperature field
           w        : weight / test function

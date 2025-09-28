@@ -1,4 +1,58 @@
-"Fluid flow solver for Navier-Stokes equations."
+"""
+Fluid flow solver for Navier–Stokes equations in dimensional form (non-Newtonian).
+
+This module implements a stabilized finite-element solver for the steady,
+incompressible Navier–Stokes–Brinkman equations on a domain Ω, with a
+shear-rate-dependent viscosity μ(·) to model non-Newtonian fluids (e.g.,
+Carreau–Yasuda). A Brinkman penalty term models porous/solid regions and is
+commonly used in topology optimization to represent “solid” as very low
+permeability within a single-domain formulation.
+
+Strong form (dimensional):
+  Momentum conservation:
+      ρ (u · ∇) u − ∇ · [ μ(γ̇) (∇u + (∇u)ᵀ) ] + ∇p + α u = f
+  Mass conservation (incompressibility):
+      ∇ · u = 0
+  with suitable boundary conditions on Γ.
+
+Fields / parameters:
+  u   : velocity field
+  p   : pressure field
+  ρ   : fluid density
+  μ   : dynamic viscosity (here μ = μ(γ̇), a function of shear rate γ̇)
+  α   : Brinkman penalty (inverse permeability); α≈0 in fluid, large in solid
+  f   : body force (optional)
+
+Non-Newtonian model (Carreau–Yasuda):
+  μ(γ̇) = μ_∞ + (μ₀ − μ_∞) [ 1 + (λ γ̇)ᵃ ]^{(n−1)/a}
+  γ̇     = √( 2 D:D ),  with  D = ½(∇u + (∇u)ᵀ)
+
+  where:
+    μ₀     : zero-shear-rate viscosity
+    μ_∞    : infinite-shear-rate viscosity
+    λ      : relaxation time
+    a, n   : dimensionless model parameters
+
+Brinkman penalty (porous/solid representation):
+  • The αu term damps velocity in “solid” regions, effectively enforcing no-slip.
+    In fluid regions α≈0. This enables monolithic fluid/porous modeling typical
+    in density-based topology optimization.
+
+Stabilization:
+  The Galerkin formulation is augmented for robustness in convection-dominated
+  regimes and equal-order interpolations:
+  • SUPG for the advective terms in momentum.
+  • PSPG for pressure stabilization in the incompressible mixed formulation.
+
+References:
+  • Alexandersen, J. “A detailed introduction to density-based topology
+    optimisation of fluid flow problems with implementation in MATLAB.”
+    Structural and Multidisciplinary Optimization 66(1), 2023: 12.
+  • Suárez, M.A.A., Romero, J.S., Pereira, A., Menezes, I.F.M.
+    “On the virtual element method for topology optimization of
+    non-Newtonian fluid-flow problems.” Engineering with Computers, 2022.
+    (Navier–Stokes–Brinkman strong/weak forms; Carreau–Yasuda model.)
+"""
 
 import enum
 from typing import Union

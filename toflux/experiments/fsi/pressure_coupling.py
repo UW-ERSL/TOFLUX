@@ -25,6 +25,9 @@ def _compute_elem_pressure_force(
     shp_fn: Array of (num_gauss_pts, num_nodes_per_elem) containing the shape
       functions evaluated at the Gauss points.
     mesh: The structural mesh object.
+
+  Returns: An array of (num_dofs_per_elem,) containing the force due to pressure on
+    the element.
   """
   # (d)(i)m, (g)auss, (n)odes_per_elem
 
