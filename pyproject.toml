@@ -18,6 +18,8 @@ matplotlib = "*"
 shapely = "^2.0"
 pandas = "*"
 PyYAML = "*"
+chex=0.1.88 
+pyamg=5.2.1
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.4.0"
