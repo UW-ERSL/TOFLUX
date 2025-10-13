@@ -1,6 +1,6 @@
-# [TOFLUX: A Differentiable Topology Optimization Framework for Multiphysics Fluidic Problems](https://arxiv.org/abs/2508.17564)
+<div align="justify"> # [TOFLUX: A Differentiable Topology Optimization Framework for Multiphysics Fluidic Problems](https://arxiv.org/abs/2508.17564) </div>
 
-[Rahul Kumar Padhy](https://sites.google.com/view/rahulkp/home), [Krishnan Suresh](https://scholar.google.com/citations?hl=en&user=hqoL27AAAAAJ&view_op=list_works&sortby=pubdate),  [Aaditya Chandrasekhar](https://scholar.google.com/citations?user=9wCpPIkAAAAJ&hl=en)
+<div align="justify"> [Rahul Kumar Padhy](https://sites.google.com/view/rahulkp/home), [Krishnan Suresh](https://scholar.google.com/citations?hl=en&user=hqoL27AAAAAJ&view_op=list_works&sortby=pubdate),  [Aaditya Chandrasekhar](https://scholar.google.com/citations?user=9wCpPIkAAAAJ&hl=en) </div>
 
 ## Abstract
 
@@ -21,7 +21,7 @@ We strongly recommend using a virtual environment to manage project dependencies
 1.  **Install Poetry:** If you don't have Poetry, follow the [official installation guide](https://python-poetry.org/docs/#installation).
 2.  **Clone the repository:**
     ```sh
-    git clone https://github.com/UW-TOFLUX/TOFLUX.git
+    git clone git@github.com:UW-ERSL/TOFLUX.git
     cd TOFLUX
     ```
 3.  **Install dependencies:** This command will create a new virtual environment if one doesn't exist and install all the required packages.
@@ -39,7 +39,7 @@ You can also use `pip` with Python's built-in `venv` module.
 
 1.  **Clone the repository:**
     ```sh
-    git clone https://github.com/UW-TOFLUX/TOFLUX.git
+    git clone git@github.com:UW-ERSL/TOFLUX.git
     cd TOFLUX
     ```
 2.  **Create a virtual environment:**
@@ -65,12 +65,12 @@ You can also use `pip` with Python's built-in `venv` module.
 1.  **Install Conda:** If you don't have Conda, follow the [official installation guide](https://www.anaconda.com/docs/getting-started/miniconda/install).
 2.  **Clone the repository:**
     ```sh
-    git clone https://github.com/UW-TOFLUX/TOFLUX.git
+    git clone git@github.com:UW-ERSL/TOFLUX.git
     cd TOFLUX
     ```
 3.  **Install dependencies:** Create the environment and install dependencies.
     ```sh
-    conda create -n toflux -c conda-forge -y python=3.11 jax=0.6.0 jaxlib=0.6.0 numpy=2.2.6 scipy=1.15.2 matplotlib "shapely>=2.0,<3.0" pandas pyyaml
+    conda create -n toflux -c conda-forge -y python=3.11 jax=0.6.0 jaxlib=0.6.0 numpy=2.2.6 scipy=1.15.2 matplotlib "shapely>=2.0,<3.0" pandas pyyaml chex=0.1.88 pyamg=5.2.1
     ```
 4.  **Activate the environment:**
     ```sh
