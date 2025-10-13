@@ -1,6 +1,15 @@
-<div align="justify"> # [TOFLUX: A Differentiable Topology Optimization Framework for Multiphysics Fluidic Problems](https://arxiv.org/abs/2508.17564) </div>
+<h1 align="center">
+  <a href="https://arxiv.org/abs/2508.17564">
+    TOFLUX: A Differentiable Topology Optimization Framework for Multiphysics Fluidic Problems
+  </a>
+</h1>
 
-<div align="justify"> [Rahul Kumar Padhy](https://sites.google.com/view/rahulkp/home), [Krishnan Suresh](https://scholar.google.com/citations?hl=en&user=hqoL27AAAAAJ&view_op=list_works&sortby=pubdate),  [Aaditya Chandrasekhar](https://scholar.google.com/citations?user=9wCpPIkAAAAJ&hl=en) </div>
+<p align="center">
+  <a href="https://sites.google.com/view/rahulkp/home">Rahul Kumar Padhy</a>,
+  <a href="https://scholar.google.com/citations?hl=en&user=hqoL27AAAAAJ&view_op=list_works&sortby=pubdate">Krishnan Suresh</a>,
+  <a href="https://scholar.google.com/citations?user=9wCpPIkAAAAJ&hl=en">Aaditya Chandrasekhar</a>
+</p>
+
 
 ## Abstract
 
