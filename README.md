@@ -1,5 +1,5 @@
 <h1 align="center">
-  <a href="(https://link.springer.com/article/10.1007/s00158-026-04252-7)">
+  <a href="https://link.springer.com/article/10.1007/s00158-026-04252-7">
     TOFLUX: A Differentiable Topology Optimization Framework for Multiphysics Fluidic Problems
   </a>
 </h1>
