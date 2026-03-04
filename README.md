@@ -1,5 +1,5 @@
 <h1 align="center">
-  <a href="https://arxiv.org/abs/2508.17564">
+  <a href="(https://link.springer.com/article/10.1007/s00158-026-04252-7)">
     TOFLUX: A Differentiable Topology Optimization Framework for Multiphysics Fluidic Problems
   </a>
 </h1>
@@ -151,9 +151,13 @@ Differentiable PDE/physics toolkit (fluids included) in Python with NumPy/PyTorc
 If you use TOFLUX in your research, please consider citing it.
 
 ```bibtex
-@article{padhy2025toflux,
-  title={TOFLUX: A Differentiable Topology Optimization Framework for Multiphysics Fluidic Problems},
+@article{padhy2026toflux,
+  title={Toflux: a differentiable topology optimization framework for multiphysics fluidic problems: R. Padhy et al.},
   author={Padhy, Rahul Kumar and Suresh, Krishnan and Chandrasekhar, Aaditya},
-  journal={arXiv preprint arXiv:2508.17564},
-  year={2025}
+  journal={Structural and Multidisciplinary Optimization},
+  volume={69},
+  number={3},
+  pages={56},
+  year={2026},
+  publisher={Springer}
 }
